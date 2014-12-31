@@ -93,6 +93,7 @@ class PathFunctor(_restricted_object_cls):
         else:
             self[attr](value)
 
+
 def path_functor_wrapper(*args, **kwargs):
     class Lala(object):
         def __get__(self, obj, type=None):
@@ -103,6 +104,7 @@ def path_functor_wrapper(*args, **kwargs):
             # TODO: Better message
             raise TypeError("You've tried using function setattr syntax without path")
     return Lala()
+
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
@@ -179,7 +181,7 @@ class AttrDict(dict):
         if not allow_empty:
             if not path:
                 raise ValueError("path is empty")
-        if not isinstance(path, (tuple ,list)):
+        if not isinstance(path, (tuple, list)):
             raise TypeError(
                 "expected tuple or list, got %s instead"
                 % repr(type(path)))
@@ -245,81 +247,7 @@ class AttrDict(dict):
         return super(AttrDict, self).pop(*args, **kwargs)
 
     get = path_functor_wrapper('get_path', no_path_func='_real_get')
-    setdefault = path_functor_wrapper('setdefault_path', no_path_func='_real_setdefault')
+    setdefault = path_functor_wrapper('setdefault_path',
+                                      no_path_func='_real_setdefault')
     pop = path_functor_wrapper('pop_path', no_path_func='_real_pop')
     set = path_functor_wrapper('set_path', allow_setattr=True)
-
-
-    # def set_path(self, path, value):
-    #     mapping, key = self.lala_or_create(path)
-    #     mapping[key] = value
-
-    # def setdefault_path(self, path, value):
-    #     mapping, key = self.lala_or_create(path)
-    #     return mapping.setdefault(key, value)
-
-    # @path_as_argument_wrapper
-    # def get(self, path_tuple, default=None):
-    #     result = self
-    #     for i, key in enumerate(path_tuple):
-    #         if not isinstance(result, AttrDict):
-    #             raise TypeError("Attempting to get path %r where key %r is not an AttrDict" % (path_tuple, path_tuple[i - 1]))
-    #         try:
-    #             result = result[key]
-    #         except KeyError:
-    #             result = default
-    #             break
-    #     return result
-
-    # def get_path(self, path, *args, **kwargs):
-    #     return self.get(PathTuple(path), *args, **kwargs)
-
-    # @path_as_argument_wrapper
-    # def set(self, path_tuple, value, get_if_exists=False, delete=False):
-    #     current = self
-    #     for i, key in enumerate(path_tuple):
-    #         if not isinstance(current, AttrDict):
-    #             raise TypeError("Attempting to access path %r where key %r is not an AttrDict" % (path_tuple, path_tuple[i - 1]))
-    #         if i == len(path_tuple) - 1:
-    #             break
-    #         if key not in current:
-    #             if delete:
-    #                 return value
-    #             current[key] = {}
-    #         current = current[key]
-    #     key = path_tuple[-1]
-
-    #     result = value
-    #     if get_if_exists and key in current:
-    #         result = current[key]
-    #     if delete and key in current:
-    #         del current[key]
-    #     if not delete:
-    #         current[key] = value
-    #         result = current[key]
-
-    #     return result
-
-    # def set_path(self, path, *args, **kwargs):
-    #     self.set(PathTuple(path), *args, **kwargs)
-
-    # @path_as_argument_wrapper
-    # def setdefault(self, key, default=None):
-    #     return self.set(key, default, get_if_exists=True)
-
-    # def setdefault_path(self, path, *args, **kwargs):
-    #     return self.setdefault(PathTuple(path), *args, **kwargs)
-
-    # @path_as_argument_wrapper
-    # def pop(self, key, default=NO_VALUE):
-    #     result = self.set(key, default, get_if_exists=True, delete=True)
-    #     if result is NO_VALUE:
-    #         raise KeyError(key)
-    #     return result
-
-    # def pop_path(self, path, *args, **kwargs):
-    #     return self.pop(PathTuple(path), *args, **kwargs)
-
-
-
-
