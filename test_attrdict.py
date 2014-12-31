@@ -183,7 +183,8 @@ class TestCheckPath(object):
         ("get_path", []),
         ("set_path", [42]),
         ("setdefault_path", [42]),
-        (("pop_path", [42])),
+        ("pop_path", [42]),
+        ("has_path", []),
     ])
 
     @all_methods_decorator
@@ -317,6 +318,23 @@ class TestPopPath(object):
         assert ad3 == ad3_copy
 
 
+class TestHasPath(object):
+    def test_depth_1_yes(self, ad1):
+        assert ad1.has_path(('root',))
+
+    def test_depth_1_no(self, ad1):
+        assert not ad1.has_path(('unknown',))
+
+    def test_depth_1_mapping_yes(self, ad2):
+        assert ad2.has_path(('root',))
+
+    def test_depth_2_yes(self, ad2):
+        assert ad2.has_path(('root', 'leaf'))
+
+    def test_depth_2_no(self, ad2):
+        assert not ad2.has_path(('root', 'unknown'))
+
+
 class TestMagicSyntax(object):
     def test_get(self, ad3):
         assert ad3.get.root() is ad3.root
@@ -334,6 +352,28 @@ class TestMagicSyntax(object):
     def test_set_setattr_depth(self, ad1):
         ad1.set.another.one = 1
         assert ad1 == AD(root=1, another=AD(one=1))
+
+    def test_pop_depth_1(self, ad1):
+        assert ad1.pop.root() == 1
+        assert ad1 == AD()
+
+    def test_pop_depth_2(self, ad2):
+        assert ad2.pop.root.leaf() == 2
+        assert ad2 == AD(root=AD())
+
+    def test_usual_pop(self, ad1):
+        assert ad1.pop('root') == 1
+        assert ad1 == AD()
+
+    def test_has(self, ad2):
+        assert ad2.has.root.leaf()
+
+    def test_not_has(self, ad2):
+        assert not ad2.has.root.unknown()
+
+    def test_common_error_forgotten_brackets(self, ad2):
+        with pytest.raises(TypeError):
+            assert ad2.pop.root.leaf == 2
 
 
 class TestAttributePathAccessWrapper(object):

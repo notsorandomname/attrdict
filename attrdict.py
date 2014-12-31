@@ -232,6 +232,10 @@ class AttrDict(dict):
             result = mapping.pop(key, default)
         return result
 
+    @path_wrapper
+    def has_path(self, path):
+        return self.get_path(path, NO_VALUE) is not NO_VALUE
+
     def _real_get(self, *args, **kwargs):
         return super(AttrDict, self).get(*args, **kwargs)
 
@@ -241,8 +245,12 @@ class AttrDict(dict):
     def _real_pop(self, *args, **kwargs):
         return super(AttrDict, self).pop(*args, **kwargs)
 
+    def _real_has(self, key):
+        return key in self
+
     get = path_functor_wrapper('get_path', no_path_func='_real_get')
     setdefault = path_functor_wrapper('setdefault_path',
                                       no_path_func='_real_setdefault')
     pop = path_functor_wrapper('pop_path', no_path_func='_real_pop')
     set = path_functor_wrapper('set_path', allow_setattr=True)
+    has = path_functor_wrapper('has_path', no_path_func='_real_has')
