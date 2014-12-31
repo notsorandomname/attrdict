@@ -322,66 +322,74 @@ def test_pop_path_non_existing_intermediate_branch_returns_default_value():
     assert x.pop_path(('root', 'unknown', 'leaf'), 42) == 42
     assert x == y
 
+
 def test_magic_syntax_get():
     x = AD(root=AD(branch=AD(leaf=1)))
     assert x.get.root() is x.root
 
+
 def test_magic_syntax_get_default_none():
     x = AD(root=AD(branch=AD(leaf=1)))
-    assert x.get.root.unknown() == None
+    assert x.get.root.unknown() is None
+
 
 def test_magic_syntax_get_default():
     x = AD(root=AD(branch=AD(leaf=1)))
     assert x.get.root.unknown('default') == 'default'
+
 
 def test_magic_syntax_set_setattr():
     x = AD(root=1)
     x.set.another = 1
     assert x == AD(root=1, another=1)
 
+
 def test_magic_syntax_set_setattr_depth():
     x = AD(root=1)
     x.set.another.one = 1
     assert x == AD(root=1, another=AD(one=1))
 
-@pytest.fixture
-def magic_obj():
-    class MagicObject(object):
-        def path_func(self, path, *args, **kwargs):
-            return path, args, kwargs
-        def no_path_func(self, *args, **kwargs):
-            return args, kwargs
-        func = path_functor_wrapper('path_func', 'no_path_func')
-        only_path_func = path_functor_wrapper('path_func')
-        setattr_func = path_functor_wrapper('path_func', allow_setattr=True)
-    return MagicObject()
 
 class TestAttributePathAccessWrapper(object):
-    def test_path_func(self, magic_obj):
-        assert magic_obj.func.root.leaf.branch(4, b=51) == (('root', 'leaf', 'branch'), (4,), dict(b=51))
+    @pytest.fixture
+    def magic_obj(self):
+        class MagicObject(object):
+            path_func = MagicMock(return_value='path_func')
+            no_path_func = MagicMock(return_value='no_path_func')
 
-    def test_raises_attribute_error_on_underscore_attributes(self):
+            func = path_functor_wrapper('path_func', 'no_path_func')
+            only_path_func = path_functor_wrapper('path_func')
+            setattr_func = path_functor_wrapper('path_func',
+                                                allow_setattr=True)
+        return MagicObject()
+
+    def test_path_func(self, magic_obj):
+        assert magic_obj.func.root.leaf.branch(4, b=51) == 'path_func'
+        magic_obj.path_func.assert_called_with(
+            ('root', 'leaf', 'branch'), 4, b=51)
+
+    def test_raises_attribute_error_on_underscore_attributes(self, magic_obj):
         with pytest.raises(AttributeError) as exc_info:
-            magic_obj._unknown
+            magic_obj.func._unknown
         assert '_unknown' in exc_info.exconly()
 
     def test_no_path_func(self, magic_obj):
-        assert magic_obj.func(1, 2, k=3) == ((1, 2), dict(k=3))
+        assert magic_obj.func(1, 2, k=3) == 'no_path_func'
+        magic_obj.no_path_func.assert_called_with(1, 2, k=3)
 
     def test_only_path_func_raises_type_error(self, magic_obj):
-        with pytest.raises(TypeError) as exc_info:
+        with pytest.raises(TypeError):
             assert magic_obj.only_path_func(1, 2)
 
     def test_only_path_func_works_with_path(self, magic_obj):
-        assert magic_obj.only_path_func.root.leaf(1, 2) == (('root', 'leaf'), (1, 2), {})
+        assert magic_obj.only_path_func.root.leaf(1, 2) == 'path_func'
+        magic_obj.path_func.assert_called_with(('root', 'leaf'), 1, 2)
 
     def test_setattr(self, magic_obj):
-        magic_obj.path_func = MagicMock()
         magic_obj.setattr_func.root.leaf = 1
         magic_obj.path_func.assert_called_with(('root', 'leaf'), 1)
 
     def test_setattr_without_path_raises_type_error(self, magic_obj):
-        magic_obj.path_func = MagicMock()
         with pytest.raises(TypeError):
             magic_obj.setattr_func = 1
 
@@ -390,5 +398,7 @@ class TestAttributePathAccessWrapper(object):
             magic_obj.func.a.b + 1
 
     def test_using_same_descriptor_twice(self, magic_obj):
-        assert magic_obj.func.root() == (('root',), (), {})
-        assert magic_obj.func.another() == (('another',), (), {})
+        magic_obj.func.root()
+        magic_obj.path_func.assert_called_with(('root',))
+        magic_obj.func.another()
+        magic_obj.path_func.assert_called_with(('another',))
