@@ -194,26 +194,21 @@ class AttrDict(dict):
     # XXX: check_exist?
     @path_wrapper
     def get_path(self, path, default=None):
-        self._check_path(path)
         mapping = self._get_mapping(path[:-1])
-        print mapping
         return mapping.get(path[-1], default)
 
     @path_wrapper
     def set_path(self, path, value):
-        self._check_path(path)
         mapping = self._get_or_create_mapping(path[:-1])
         mapping[path[-1]] = value
 
     @path_wrapper
     def setdefault_path(self, path, value=None):
-        self._check_path(path)
         mapping = self._get_or_create_mapping(path[:-1])
         return mapping.setdefault(path[-1], value)
 
     @path_wrapper
     def pop_path(self, path, default=NO_VALUE):
-        self._check_path(path)
         branch, key = path[:-1], path[-1]
         try:
             mapping = self._get_mapping(branch)
