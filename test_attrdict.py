@@ -375,6 +375,9 @@ class TestMagicSyntax(object):
     def test_not_has(self, ad2):
         assert not ad2.has.root.unknown()
 
+    def test_usual_has(self, ad1):
+        assert ad1.has('root')
+
     def test_common_error_forgotten_brackets(self, ad2):
         with pytest.raises(TypeError):
             assert ad2.pop.root.leaf == 2
@@ -439,6 +442,9 @@ class TestAttributePathAccessWrapper(object):
 
     def test_repr_should_not_raise_on_empty_path(self, magic_obj):
         assert 'PathFunctor' in repr(magic_obj.func)
+
+    def test_repr_is_str(self, magic_obj):
+        assert repr(magic_obj.func) == str(magic_obj.func)
 
     def test_repr_should_raise_on_empty_path(self, magic_obj):
         with pytest.raises(TypeError):
