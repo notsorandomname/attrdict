@@ -437,6 +437,9 @@ class TestAttributePathAccessWrapper(object):
         magic_obj.func.another()
         magic_obj.path_func.assert_called_with(('another',))
 
-    def test_repr(self, magic_obj):
+    def test_repr_should_not_raise_on_empty_path(self, magic_obj):
         assert 'PathFunctor' in repr(magic_obj.func)
 
+    def test_repr_should_raise_on_empty_path(self, magic_obj):
+        with pytest.raises(TypeError):
+            repr(magic_obj.func.some)
