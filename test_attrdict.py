@@ -353,6 +353,10 @@ class TestMagicSyntax(object):
         ad1.set.another.one = 1
         assert ad1 == AD(root=1, another=AD(one=1))
 
+    def test_setdefault_no_setattr(self, ad1):
+        with pytest.raises(TypeError):
+            ad1.setdefault.root = 1
+
     def test_pop_depth_1(self, ad1):
         assert ad1.pop.root() == 1
         assert ad1 == AD()
@@ -419,6 +423,10 @@ class TestAttributePathAccessWrapper(object):
         with pytest.raises(TypeError):
             magic_obj.setattr_func = 1
 
+    def test_no_setattr_raises_on_setattr(self, magic_obj):
+        with pytest.raises(TypeError):
+            magic_obj.func.some = 1
+
     def test_path_func_faulty_code_raises_type_error(self, magic_obj):
         with pytest.raises(TypeError):
             magic_obj.func.a.b + 1
@@ -428,3 +436,7 @@ class TestAttributePathAccessWrapper(object):
         magic_obj.path_func.assert_called_with(('root',))
         magic_obj.func.another()
         magic_obj.path_func.assert_called_with(('another',))
+
+    def test_repr(self, magic_obj):
+        assert 'PathFunctor' in repr(magic_obj.func)
+

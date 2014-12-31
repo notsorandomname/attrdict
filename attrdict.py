@@ -65,6 +65,7 @@ class PathFunctor(_restricted_object_cls):
         self.__no_path_func = no_path_func
         self.__path = []
         self.__obj = obj
+        self.__allow_setattr = allow_setattr
 
     def __call__(self, *args, **kwargs):
         if not self.__path:
@@ -91,7 +92,38 @@ class PathFunctor(_restricted_object_cls):
         if attr.startswith('_'):
             return super(PathFunctor, self).__setattr__(attr, value)
         else:
+            if not self.__allow_setattr:
+                message = "%s doesn't support setattr magic syntax" % str(
+                    self.__path_func
+                )
+                self._access_violation(
+                    '__setattr__', attr, value,
+                    message=message)
             self[attr](value)
+
+    def __repr__(self, *args, **kwargs):
+        if self.__path:
+            self._access_violation('__repr__', *args, **kwargs)
+        return self.__get_representation()
+
+    def __get_representation(self):
+        path_func_repr = repr(getattr(self.__obj, self.__path_func))
+        no_path_func_repr = ''
+        if self.no_path_func is not None:
+            no_path_func_repr = repr(getattr(self.__obj, self.__no_path_func))
+        return '<PathFunctor around %s%s>' % (
+            path_func_repr,
+            (' and %s' % no_path_func_repr if no_path_func_repr else '')
+        )
+
+    def __str__(self, *args, **kwargs):
+        return repr(self)
+
+    def _access_violation(self, method_name, *args, **kwargs):
+        my_repr = self.__get_representation()
+        raise TypeError(
+            "While accessing the following method of %s" % my_repr,
+            method_name, args, kwargs)
 
 
 def path_functor_wrapper(*args, **kwargs):

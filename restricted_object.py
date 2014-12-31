@@ -117,15 +117,19 @@ __reduce__
 __reduce_ex__
 """
 
-def raise_error(method_name):
-    def raiser(*args, **kwargs):
-        raise TypeError(method_name, args, kwargs)
-    return raiser
+
+def access_violation(self, *args, **kwargs):
+    method_name = kwargs.pop('method_name')
+    self._access_violation(method_name, *args, **kwargs)
+
 
 def create_restricted_object_cls(dont_override_methods=[]):
     dont_override_methods = set(dont_override_methods)
+
     class RestrictedObject(object):
-        pass
+        def _access_violation(self, method_name, *args, **kwargs):
+            raise TypeError(method_name, args, kwargs)
+
     for method in methods.split('\n'):
         method = method.strip()
         if not method or method.startswith('#'):
@@ -133,8 +137,12 @@ def create_restricted_object_cls(dont_override_methods=[]):
         if method in dont_override_methods:
             dont_override_methods.remove(method)
             continue
-        setattr(RestrictedObject, method, staticmethod(raise_error(method)))
+
+        # XXX: functools.partial objects have no __get__
+        def method_access_violation(self, method_name=method, *args, **kwargs):
+            self._access_violation(method_name, *args, **kwargs)
+
+        setattr(RestrictedObject, method, method_access_violation)
     if dont_override_methods:
         raise ValueError("Unknown attributes", dont_override_methods)
     return RestrictedObject
-
