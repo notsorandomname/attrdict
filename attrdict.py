@@ -127,15 +127,15 @@ class PathFunctor(_restricted_object_cls):
 
 
 def path_functor_wrapper(*args, **kwargs):
-    class Lala(object):
+    class FuncDescriptor(object):
         def __get__(self, obj, type=None):
             # XXX: Classmethods?
             return PathFunctor(obj, *args, **kwargs)
 
         def __set__(self, obj, value):
             # TODO: Better message
-            raise TypeError("You've tried using function setattr syntax without path")
-    return Lala()
+            raise TypeError("using setattr syntax without path")
+    return FuncDescriptor()
 
 
 class AttrDict(dict):
@@ -295,10 +295,12 @@ class AttrDict(dict):
 
 
 def merge(left, right):
+    "return a new dictionary which is a recursively merged left and right"
     return inplace_merge(type(left)(left), right)
 
 
 def inplace_merge(left, right):
+    "inplace recursive merge two dictionaties"
     for key, value in right.iteritems():
         if key in left:
             left_value = left[key]
