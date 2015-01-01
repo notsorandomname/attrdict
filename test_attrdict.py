@@ -5,7 +5,7 @@ from mock import MagicMock
 
 from attrdict import (
     AttrDict, PathTypeError, PathKeyError,
-    path_functor_wrapper
+    path_functor_wrapper, merge, inplace_merge
 )
 
 AD = AttrDict
@@ -449,3 +449,57 @@ class TestAttributePathAccessWrapper(object):
     def test_repr_should_raise_on_empty_path(self, magic_obj):
         with pytest.raises(TypeError):
             repr(magic_obj.func.some)
+
+
+class TestMerge(object):
+    cases = pytest.mark.parametrize('left,right,expected', [
+        [{}, {}, {}],
+        [dict(x=1), dict(y=2), dict(x=1, y=2)],
+        [dict(x=1, y=2), dict(y=42, z=3), dict(x=1, y=42, z=3)],
+        [
+            dict(x=1, y=dict(y1=1)), dict(y=dict(y2=1), z=3),
+            dict(x=1, y=dict(y1=1, y2=1), z=3)
+        ],
+        [
+            dict(x=dict(y=dict(z=1, h=4))), dict(x=dict(y=dict(z=2, w=3))),
+            dict(x=dict(y=dict(z=2, w=3, h=4)))
+        ]
+    ])
+
+    @cases
+    def test_merge(self, left, right, expected):
+        assert merge(left, right) == expected
+
+    @cases
+    def test_merge_doesnt_change_input_values(self, left, right, expected):
+        left_copy = AD(left)
+        right_copy = AD(right)
+        merge(left, right)
+        assert left == left_copy
+        assert right == right_copy
+
+    @cases
+    def test_inplace_merge(self, left, right, expected):
+        result = inplace_merge(left, right)
+        assert result == expected
+
+    def test_inplace_merge_changes_left_element(self):
+        left = AD(x=1)
+        right = AD(y=2)
+        assert inplace_merge(left, right) is left
+
+    def test_attrdict_merge(self):
+        left = AD(x=1)
+        right = AD(y=2)
+        assert left._merge(right) == merge(left, right)
+
+    def test_attrdict_inplace_merge(self):
+        left = AD(x=1)
+        right = AD(y=2)
+        left_copy = AD(left)
+        right_copy = AD(right)
+        assert (
+            left._inplace_merge(right) ==
+            inplace_merge(left_copy, right_copy)
+        )
+        assert left == left_copy

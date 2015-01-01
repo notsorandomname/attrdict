@@ -286,3 +286,24 @@ class AttrDict(dict):
     pop = path_functor_wrapper('pop_path', no_path_func='_real_pop')
     set = path_functor_wrapper('set_path', allow_setattr=True)
     has = path_functor_wrapper('has_path', no_path_func='_real_has')
+
+    def _merge(self, other):
+        return merge(self, other)
+
+    def _inplace_merge(self, other):
+        return inplace_merge(self, other)
+
+
+def merge(left, right):
+    return inplace_merge(type(left)(left), right)
+
+
+def inplace_merge(left, right):
+    for key, value in right.iteritems():
+        if key in left:
+            left_value = left[key]
+            if isinstance(left_value, collections.Mapping):
+                if isinstance(value, collections.Mapping):
+                    value = inplace_merge(left_value, value)
+        left[key] = value
+    return left
