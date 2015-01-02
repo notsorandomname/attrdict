@@ -24,11 +24,14 @@ NO_VALUE = object()
 #         return method(self, path, *args, **kwargs)
 #     return wrapper
 
+
 class PathTypeError(TypeError):
     pass
 
+
 class PathKeyError(KeyError):
     pass
+
 
 def check_path_wrapper(func):
     @functools.wraps(func)
@@ -36,6 +39,7 @@ def check_path_wrapper(func):
         self._check_path(path)
         return func(self, path, *args, **kwargs)
     return wrapper
+
 
 def set_exception_full_path_wrapper(func):
     @functools.wraps(func)
@@ -48,14 +52,17 @@ def set_exception_full_path_wrapper(func):
         return result
     return wrapper
 
+
 def path_wrapper(func):
     return check_path_wrapper(
            set_exception_full_path_wrapper(
                func
             ))
 
+
 _restricted_object_cls = create_restricted_object_cls(
         dont_override_methods=['__setattr__', '__getattribute__'])
+
 
 class PathFunctor(_restricted_object_cls):
     __slots__ = ['__path', '__path_func', '__no_path_func', '__obj']
@@ -138,11 +145,33 @@ def path_functor_wrapper(*args, **kwargs):
     return FuncDescriptor()
 
 
-class AttrDict(dict):
+class AttrDict(collections.MutableMapping):
     def __init__(self, *args, **kwargs):
+        self._dict = {}
         other = dict(*args, **kwargs)
         for k, v in other.iteritems():
             self[k] = v
+
+    # Methods required for ABC
+
+    def __setitem__(self, key, value):
+        assert value is not NO_VALUE, repr(key)
+        if isinstance(value, collections.Mapping):
+            # Convert mapping into an object of same class
+            value = self.__class__(value)
+        self._dict[key] = value
+
+    def __getitem__(self, key):
+        return self._dict[key]
+
+    def __delitem__(self, key):
+        del self._dict[key]
+
+    def __len__(self, key):
+        return len(self._dict)
+
+    def __iter__(self):
+        return iter(self._dict)
 
     def __getattr__(self, attr):
         value = self.get(attr, NO_VALUE)
@@ -151,20 +180,15 @@ class AttrDict(dict):
         return value
 
     def __setattr__(self, attr, value):
-        self[attr] = value
-
-    def __setitem__(self, key, value):
-        assert value is not NO_VALUE, repr(key)
-        if isinstance(value, collections.Mapping):
-            # Convert mapping into an object of same class
-            value = self.__class__(value)
-        super(AttrDict, self).__setitem__(key, value)
+        if attr.startswith('_'):
+            super(AttrDict, self).__setattr__(attr, value)
+        else:
+            self[attr] = value
 
     def __repr__(self, *args, **kwargs):
-        representation = super(AttrDict, self).__repr__(*args, **kwargs)
         result = '{class_name}({representation})'.format(
             class_name=self.__class__.__name__,
-            representation=representation,
+            representation=repr(self._dict),
         )
         return result
 
