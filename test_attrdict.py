@@ -5,7 +5,8 @@ from mock import MagicMock, call
 
 from attrdict import (
     AttrDict, PathTypeError, PathKeyError,
-    path_functor_wrapper, merge, inplace_merge, generic_merge
+    path_functor_wrapper, merge, inplace_merge, generic_merge,
+    MergeError
 )
 
 AD = AttrDict
@@ -515,3 +516,10 @@ class TestMerge(object):
             call(AD(z=2), AD(z=3, w=4)),
             call(AD(), AD(nn=5)),
         ], any_order=True)
+
+    def test_cant_merge_mapping_with_value(self):
+        left = AD(x=1)
+        right = AD(x=AD(y=2))
+        with pytest.raises(MergeError) as exc_info:
+            merge(left, right)
+        assert exc_info.value[:2] == (1, AD(y=2))

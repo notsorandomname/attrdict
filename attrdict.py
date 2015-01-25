@@ -328,14 +328,24 @@ def inplace_merge(left, right):
     return generic_merge(left, right, inplace_merge)
 
 
+class MergeError(ValueError):
+    "error raised when two values can't be merged"
+
+
 def generic_merge(left, right, merge_function):
     "merge `left` and `right`, using `merge_function` for merging mappings"
-    for key, value in right.iteritems():
+    for key, right_value in right.iteritems():
+        value = right_value
         if key in left:
             left_value = left[key]
-            if isinstance(left_value, collections.Mapping):
-                if isinstance(value, collections.Mapping):
-                    value = merge_function(left_value, value)
+            left_is_mapping = isinstance(left_value, collections.Mapping)
+            right_is_mapping = isinstance(right_value, collections.Mapping)
+            if left_is_mapping and right_is_mapping:
+                value = merge_function(left_value, right_value)
+            elif left_is_mapping ^ right_is_mapping:
+                raise MergeError(
+                    left_value, right_value,
+                    dict(message="Can't merge value with a mapping"))
         left[key] = value
     return left
 
