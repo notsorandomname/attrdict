@@ -452,25 +452,26 @@ class TestAttributePathAccessWrapper(object):
 
 
 class TestMerge(object):
-    cases = pytest.mark.parametrize('left,right,expected', [
-        [{}, {}, {}],
-        [dict(x=1), dict(y=2), dict(x=1, y=2)],
-        [dict(x=1, y=2), dict(y=42, z=3), dict(x=1, y=42, z=3)],
-        [
-            dict(x=1, y=dict(y1=1)), dict(y=dict(y2=1), z=3),
-            dict(x=1, y=dict(y1=1, y2=1), z=3)
-        ],
-        [
-            dict(x=dict(y=dict(z=1, h=4))), dict(x=dict(y=dict(z=2, w=3))),
-            dict(x=dict(y=dict(z=2, w=3, h=4)))
-        ]
-    ])
+    def cases():
+        return pytest.mark.parametrize('left,right,expected', [
+            [{}, {}, {}],
+            [dict(x=1), dict(y=2), dict(x=1, y=2)],
+            [dict(x=1, y=2), dict(y=42, z=3), dict(x=1, y=42, z=3)],
+            [
+                dict(x=1, y=dict(y1=1)), dict(y=dict(y2=1), z=3),
+                dict(x=1, y=dict(y1=1, y2=1), z=3)
+            ],
+            [
+                dict(x=dict(y=dict(z=1, h=4))), dict(x=dict(y=dict(z=2, w=3))),
+                dict(x=dict(y=dict(z=2, w=3, h=4)))
+            ]
+        ])
 
-    @cases
+    @cases()
     def test_merge(self, left, right, expected):
         assert merge(left, right) == expected
 
-    @cases
+    @cases()
     def test_merge_doesnt_change_input_values(self, left, right, expected):
         left_copy = AD(left)
         right_copy = AD(right)
@@ -478,7 +479,7 @@ class TestMerge(object):
         assert left == left_copy
         assert right == right_copy
 
-    @cases
+    @cases()
     def test_inplace_merge(self, left, right, expected):
         result = inplace_merge(left, right)
         assert result == expected
