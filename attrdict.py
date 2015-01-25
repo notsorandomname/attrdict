@@ -185,6 +185,14 @@ class AttrDict(collections.MutableMapping):
         else:
             self[attr] = value
 
+    def __delattr__(self, attr):
+        if attr.startswith('_'):
+            super(AttrDict, self).__delattr__(attr)
+        else:
+            value = self.pop(attr, NO_VALUE)
+            if value is NO_VALUE:
+                raise AttributeError(attr)
+
     def __repr__(self, *args, **kwargs):
         result = '{class_name}({representation})'.format(
             class_name=self.__class__.__name__,
@@ -393,6 +401,17 @@ class TypedAttrDict(AttrDict):
             return getattr(self, dict_action)(key, *args, **kwargs)
         else:
             return descr_func(self, key, *args, **kwargs)
+
+    def __getattribute__(self, key):
+        # Because we use __dictget__ instead of __get__
+        # we need to route the request to dict-descriptor
+        # in case it has any of __dictget__, __dictset__ or __dictdel__
+        value = getattr(type(self), key, NO_VALUE)
+        if value is not NO_VALUE:
+            if any(hasattr(value, method_name) for (method_name, _) in DESCRIPTOR_ACTIONS.itervalues()):
+                # This is a dict-descriptor, jump right into getattr
+                return self.__getattr__(key)
+        return super(TypedAttrDict, self).__getattribute__(key)
 
     def __getitem__(self, key):
         return self._action_func(GET, key)

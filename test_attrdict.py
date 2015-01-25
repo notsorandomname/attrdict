@@ -42,6 +42,16 @@ class TestBasicProperties(object):
         x.element = 1
         assert x['element'] == 1
 
+    def test_setattr_sets_underscore_directly(self):
+        x = AD()
+        x._foo = 1
+        assert x == AD()
+
+    def test_getattr_gets_underscore_directly(self):
+        x = AD()
+        x.__dict__['_foo'] = 1
+        assert x._foo == 1
+
     def test_getattr_gets_item(self):
         x = AD(element=1)
         assert x.element == 1
@@ -51,6 +61,25 @@ class TestBasicProperties(object):
         with pytest.raises(AttributeError) as exc_info:
             x.unknown
         assert 'unknown' == exc_info.value[0]
+
+    def test_delattr_deletes_attribute(self):
+        x = AD()
+        x.element = 1
+        del x.element
+        assert x == AD()
+
+    def test_delattr_raises_attribute_error(self):
+        x = AD()
+        with pytest.raises(AttributeError) as exc_info:
+            del x.unknown
+        assert exc_info.value[0] == 'unknown'
+
+    def test_delattr_deletes_underscore_from_instancedict(self):
+        x = AD()
+        x._foo = 1
+        del x._foo
+        assert not hasattr(x, '_foo')
+
 
     @pytest.mark.parametrize('value,length', [
         ({}, 0),
