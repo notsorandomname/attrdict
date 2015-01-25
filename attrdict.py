@@ -348,3 +348,43 @@ def generic_merge(left, right, merge_function):
                     dict(message="Can't merge value with a mapping"))
         left[key] = value
     return left
+
+GET = 'get'
+SET = 'set'
+DEL = 'del'
+
+
+def _get_action(name):
+    return ('__dict%s__' % name, '__%sitem__' % name)
+
+DESCRIPTOR_ACTIONS = {}
+for _action in [GET, SET, DEL]:
+    DESCRIPTOR_ACTIONS[_action] = _get_action(_action)
+del _action
+
+
+class TypedAttrDict(AttrDict):
+    """AttrDict for which you can define sort of "schema" """
+    def _get_descriptor(self, key):
+        descriptor = getattr(type(self), key,  NO_VALUE)
+        if descriptor is NO_VALUE:
+            raise KeyError(key)
+        return descriptor
+
+    def _action_func(self, key, action):
+        descriptor = self._get_descriptor(key)
+        descr_action, dict_action = DESCRIPTOR_ACTIONS[action]
+        descr_func = getattr(descriptor, descr_action, NO_VALUE)
+        if descr_func is NO_VALUE:
+            return getattr(super(TypedAttrDict, self), dict_action)(key)
+        else:
+            return descr_func(self, key)
+
+    def __getitem__(self, key):
+        return self._action_func(key, GET)
+
+    def __setitem__(self, key, value):
+        self._action_func(key, SET)
+
+    def __delitem__(self, key):
+        self._action_func(key, DEL)

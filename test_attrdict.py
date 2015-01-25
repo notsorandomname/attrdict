@@ -6,7 +6,7 @@ from mock import MagicMock, call
 from attrdict import (
     AttrDict, PathTypeError, PathKeyError,
     path_functor_wrapper, merge, inplace_merge, generic_merge,
-    MergeError
+    MergeError, TypedAttrDict
 )
 
 AD = AttrDict
@@ -532,3 +532,23 @@ class TestMerge(object):
         with pytest.raises(MergeError) as exc_info:
             merge(left, right)
         assert exc_info.value[:2] == (1, AD(y=2))
+
+
+class TestTypedAttrDict(object):
+    @pytest.fixture
+    def empty_tad(self):
+        return TypedAttrDict()
+
+    def test_creation(self, empty_tad):
+        assert isinstance(empty_tad, TypedAttrDict)
+
+    @pytest.mark.parametrize('method,additional_args', [
+        ('__getitem__', ()),
+        ('__setitem__', ('some_value',)),
+        ('__delitem__', ()),
+    ])
+    def test_unknown_key_raises_key_error(self, method, additional_args, empty_tad):
+        key = 'some_key'
+        with pytest.raises(KeyError) as exc_info:
+            getattr(empty_tad, method)(key, *additional_args)
+        assert exc_info.value[0] == key
