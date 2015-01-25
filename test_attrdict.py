@@ -652,3 +652,18 @@ class TestTypedAttrDict(object):
         tad = Tad()
         tad._raw_setitem('key', 'value')
         assert tad.key == 'value'
+
+    def test_descriptor_without_set(self):
+        class Tad(TypedAttrDict):
+            key = self.get_simple_descriptor(with_set=False)
+        tad = Tad()
+        tad.key = 'value'
+        assert tad._raw_getitem('key') == 'value'
+
+    def test_descriptor_without_del(self):
+        class Tad(TypedAttrDict):
+            key = self.get_simple_descriptor(with_del=False)
+        tad = Tad()
+        tad._raw_setitem('key', 'value')
+        del tad.key
+        assert tad == AD()
