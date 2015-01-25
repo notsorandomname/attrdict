@@ -542,6 +542,12 @@ class TestTypedAttrDict(object):
     def test_creation(self, empty_tad):
         assert isinstance(empty_tad, TypedAttrDict)
 
+    def test_get_descriptor_raises_key_error(self, empty_tad):
+        descr_name = 'unknown'
+        with pytest.raises(KeyError) as exc_info:
+            self._get_descriptor(descr_name)
+        assert exc_info.value[0] == descr_name
+
     @pytest.mark.parametrize('method,additional_args', [
         ('__getitem__', ()),
         ('__setitem__', ('some_value',)),

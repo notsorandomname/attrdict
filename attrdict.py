@@ -371,20 +371,20 @@ class TypedAttrDict(AttrDict):
             raise KeyError(key)
         return descriptor
 
-    def _action_func(self, key, action):
+    def _action_func(self, action, key, *args, **kwargs):
         descriptor = self._get_descriptor(key)
         descr_action, dict_action = DESCRIPTOR_ACTIONS[action]
         descr_func = getattr(descriptor, descr_action, NO_VALUE)
         if descr_func is NO_VALUE:
-            return getattr(super(TypedAttrDict, self), dict_action)(key)
+            return getattr(super(TypedAttrDict, self), dict_action)(key, *args, **kwargs)
         else:
-            return descr_func(self, key)
+            return descr_func(self, key, *args, **kwargs)
 
     def __getitem__(self, key):
-        return self._action_func(key, GET)
+        return self._action_func(GET, key)
 
     def __setitem__(self, key, value):
-        self._action_func(key, SET)
+        self._action_func(SET, key, value)
 
     def __delitem__(self, key):
-        self._action_func(key, DEL)
+        self._action_func(DEL, key)
