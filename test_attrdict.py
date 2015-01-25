@@ -52,6 +52,15 @@ class TestBasicProperties(object):
             x.unknown
         assert 'unknown' == exc_info.value[0]
 
+    @pytest.mark.parametrize('value,length', [
+        ({}, 0),
+        ({'a': 1}, 1),
+        ({'a': {'b': 2}}, 1),
+        ({'a': 1, 'z': {'b': 2}, 'c': 3}, 3)
+    ])
+    def test_len(self, value, length):
+        assert len(AD(value)) == length
+
     def test_repr(self):
         x = AD(element=1)
         assert repr(x) == str(x) == "AttrDict({'element': 1})"

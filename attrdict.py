@@ -167,7 +167,7 @@ class AttrDict(collections.MutableMapping):
     def __delitem__(self, key):
         del self._dict[key]
 
-    def __len__(self, key):
+    def __len__(self):
         return len(self._dict)
 
     def __iter__(self):
@@ -348,4 +348,3 @@ def generic_merge(left, right, merge_function):
                     dict(message="Can't merge value with a mapping"))
         left[key] = value
     return left
-
