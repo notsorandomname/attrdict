@@ -407,6 +407,9 @@ class TypedAttrDict(AttrDict):
             return descr_func(self, key, *args, **kwargs)
 
     def __getattribute__(self, key):
+        # Speed up a little bit, also dict-descriptors with underscores won't work.
+        if key.startswith('_'):
+            return super(TypedAttrDict, self).__getattribute__(key)
         # Because we use __dictget__ instead of __get__
         # we need to route the request to dict-descriptor
         # in case it has any of __dictget__, __dictset__ or __dictdel__
