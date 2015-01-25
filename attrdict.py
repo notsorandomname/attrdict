@@ -385,10 +385,14 @@ class DictDescriptor(object):
         dct._raw_delitem(key)
 
 
+def get_descriptor(obj, key):
+    return getattr(type(obj), key,  NO_VALUE)
+
+
 class TypedAttrDict(AttrDict):
     """AttrDict for which you can define sort of "schema" """
     def _get_descriptor(self, key):
-        descriptor = getattr(type(self), key,  NO_VALUE)
+        descriptor = get_descriptor(self, key)
         if descriptor is NO_VALUE:
             raise KeyError(key)
         return descriptor
@@ -396,7 +400,7 @@ class TypedAttrDict(AttrDict):
     def _action_func(self, action, key, *args, **kwargs):
         descriptor = self._get_descriptor(key)
         descr_action, dict_action = DESCRIPTOR_ACTIONS[action]
-        descr_func = getattr(descriptor, descr_action, NO_VALUE)
+        descr_func = getattr(type(descriptor), descr_action, NO_VALUE)
         if descr_func is NO_VALUE:
             return getattr(self, dict_action)(key, *args, **kwargs)
         else:
@@ -406,7 +410,7 @@ class TypedAttrDict(AttrDict):
         # Because we use __dictget__ instead of __get__
         # we need to route the request to dict-descriptor
         # in case it has any of __dictget__, __dictset__ or __dictdel__
-        value = getattr(type(self), key, NO_VALUE)
+        value = get_descriptor(self, key)
         if value is not NO_VALUE:
             if any(hasattr(value, method_name) for (method_name, _) in DESCRIPTOR_ACTIONS.itervalues()):
                 # This is a dict-descriptor, jump right into getattr

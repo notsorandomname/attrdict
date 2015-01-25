@@ -115,7 +115,6 @@ class TestBasicProperties(object):
         y['b'] = 2
         assert x['dict'] != y
 
-
 def assert_path_not_a_mapping_error(exc_info, path, key, full_path):
     exc = exc_info.value
     details = exc[1]
@@ -603,11 +602,32 @@ class TestTypedAttrDict(object):
         ('__setitem__', ('some_value',), '__dictset__', None),
         ('__delitem__', (), '__dictdel__', None),
     ])
-    def test_getsetdelitem_calls_dictget(self, method, additional_args, descr_func, expected, simple_tad):
+    def test_getsetdelitem_calls_descr(self, method, additional_args, descr_func, expected, simple_tad):
         key = 'descriptor'
         assert getattr(simple_tad, method)(key, *additional_args) == expected
         descriptor = simple_tad._get_descriptor(key)
         getattr(descriptor, descr_func).assert_called_with(AD(), key, *additional_args)
+
+    @pytest.mark.parametrize('method,additional_args,descr_func,expected', [
+        (getattr, (), '__dictget__', 'mocked_get'),
+        (setattr, ('some_value',), '__dictset__', None),
+        (delattr, (), '__dictdel__', None),
+    ])
+    def test_getsetdelattr_calls_descr(self, method, additional_args, descr_func, expected, simple_tad):
+        key = 'descriptor'
+        assert method(simple_tad, key, *additional_args) == expected
+        descriptor = simple_tad._get_descriptor(key)
+        getattr(descriptor, descr_func).assert_called_with(AD(), key, *additional_args)
+
+    def test_instance_dict_ignored(self, simple_descriptor):
+        simple_descriptor.__dictget__ = MagicMock(return_value=41)
+
+        class Tad(TypedAttrDict):
+            descr = simple_descriptor
+        tad = Tad()
+        tad.descr
+        simple_descriptor.__dict__['__dictget__'].assert_has_calls([])
+        type(simple_descriptor).__dictget__.assert_called_with(tad, 'descr')
 
     @pytest.mark.parametrize('method,additional_args', [
         ('__getitem__', ()),
