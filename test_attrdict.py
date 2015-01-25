@@ -607,10 +607,10 @@ class TestTypedAttrDict(object):
     def test_creation(self, empty_tad):
         assert isinstance(empty_tad, TypedAttrDict)
 
-    def test_get_descriptor_raises_key_error(self, empty_tad):
+    def test_get_descriptor_raises_key_error(self, simple_tad):
         descr_name = 'unknown'
         with pytest.raises(KeyError) as exc_info:
-            empty_tad._get_descriptor(descr_name)
+            simple_tad._get_descriptor(descr_name)
         assert exc_info.value[0] == descr_name
 
     def test_get_descriptor_gives_it(self, simple_descriptor):
@@ -654,10 +654,10 @@ class TestTypedAttrDict(object):
         ('__setitem__', ('some_value',)),
         ('__delitem__', ()),
     ])
-    def test_unknown_key_raises_key_error(self, method, additional_args, empty_tad):
+    def test_unknown_key_raises_key_error(self, method, additional_args, simple_tad):
         key = 'some_key'
         with pytest.raises(KeyError) as exc_info:
-            getattr(empty_tad, method)(key, *additional_args)
+            getattr(simple_tad, method)(key, *additional_args)
         assert exc_info.value[0] == key
 
     def test_descriptor_without_get(self):
