@@ -704,3 +704,19 @@ class TestTypedAttrDict(object):
         assert tad == AD(key='value')
         del tad.key
         assert tad == AD()
+
+    def test_reverse_descriptor(self):
+        class HelloWorld(DictDescriptor):
+            def __dictget__(self, dct, key):
+                value = super(HelloWorld, self).__dictget__(dct, key)
+                return value[::-1]
+
+            def __dictset__(self, dct, key, value):
+                value = value + ' world'
+                super(HelloWorld, self).__dictset__(dct, key, value)
+
+        class Tad(TypedAttrDict):
+            key = HelloWorld()
+        tad = Tad()
+        tad.key = 'hello'
+        assert tad.key == 'hello world'[::-1]
