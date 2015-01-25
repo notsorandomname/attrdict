@@ -571,6 +571,8 @@ class TestTypedAttrDict(object):
 
     @pytest.mark.parametrize('method,additional_args,descr_func', [
         ('__getitem__', (), '__dictget__'),
+        ('__setitem__', ('some_value',), '__dictset__'),
+        ('__delitem__', (), '__dictdel__'),
     ])
     def test_getsetdelitem_calls_dictget(self, method, additional_args, descr_func, simple_tad):
         key = 'descriptor'
