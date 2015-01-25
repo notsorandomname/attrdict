@@ -567,13 +567,19 @@ class TestTypedAttrDict(object):
     def empty_tad(self):
         return TypedAttrDict()
 
+    def get_simple_descriptor(self, with_get=True, with_set=True, with_del=True):
+        class SimpleDescriptor(object):
+            if with_get:
+                __dictget__ = MagicMock(return_value='mocked_get')
+            if with_set:
+                __dictset__ = MagicMock()
+            if with_del:
+                __dictdel__ = MagicMock()
+        return SimpleDescriptor()
+
     @pytest.fixture
     def simple_descriptor(self):
-        class SimpleDescriptor(object):
-            __dictget__ = MagicMock(return_value='mocked_get')
-            __dictset__ = MagicMock()
-            __dictdel__ = MagicMock()
-        return SimpleDescriptor()
+        return self.get_simple_descriptor()
 
     def get_simple_tad(self, descr):
         class SimpleTad(TypedAttrDict):
@@ -639,3 +645,10 @@ class TestTypedAttrDict(object):
         with pytest.raises(KeyError) as exc_info:
             getattr(empty_tad, method)(key, *additional_args)
         assert exc_info.value[0] == key
+
+    def test_descriptor_without_get(self):
+        class Tad(TypedAttrDict):
+            key = self.get_simple_descriptor(with_get=False)
+        tad = Tad()
+        tad._raw_setitem('key', 'value')
+        assert tad.key == 'value'
