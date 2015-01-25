@@ -320,16 +320,21 @@ class AttrDict(collections.MutableMapping):
 
 def merge(left, right):
     "return a new dictionary which is a recursively merged left and right"
-    return inplace_merge(type(left)(left), right)
+    return generic_merge(type(left)(left), right, merge)
 
 
 def inplace_merge(left, right):
     "inplace recursive merge two dictionaties"
+    return generic_merge(left, right, inplace_merge)
+
+
+def generic_merge(left, right, merge_function):
+    "merge `left` and `right`, using `merge_function` for merging mappings"
     for key, value in right.iteritems():
         if key in left:
             left_value = left[key]
             if isinstance(left_value, collections.Mapping):
                 if isinstance(value, collections.Mapping):
-                    value = inplace_merge(left_value, value)
+                    value = merge_function(left_value, value)
         left[key] = value
     return left
