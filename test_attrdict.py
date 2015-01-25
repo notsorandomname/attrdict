@@ -1,11 +1,11 @@
 
 import pytest
 import mock
-from mock import MagicMock
+from mock import MagicMock, call
 
 from attrdict import (
     AttrDict, PathTypeError, PathKeyError,
-    path_functor_wrapper, merge, inplace_merge
+    path_functor_wrapper, merge, inplace_merge, generic_merge
 )
 
 AD = AttrDict
@@ -504,3 +504,14 @@ class TestMerge(object):
             inplace_merge(left_copy, right_copy)
         )
         assert left == left_copy
+
+    def test_generic_merge(self):
+        left = AD(x=1, y=AD(z=2), n=AD())
+        right = AD(x=2, y=AD(z=3, w=4), n=AD(nn=5))
+        merge_func = MagicMock(return_value='merged')
+        result = generic_merge(left, right, merge_func)
+        assert result == AD(x=2, y='merged', n='merged')
+        merge_func.assert_has_calls([
+            call(AD(z=2), AD(z=3, w=4)),
+            call(AD(), AD(nn=5)),
+        ], any_order=True)

@@ -338,3 +338,4 @@ def generic_merge(left, right, merge_function):
                     value = merge_function(left_value, value)
         left[key] = value
     return left
+
