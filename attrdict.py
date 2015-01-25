@@ -404,7 +404,8 @@ class TypedAttrDict(AttrDict):
         if descr_func is NO_VALUE:
             return getattr(self, dict_action)(key, *args, **kwargs)
         else:
-            return descr_func(self, key, *args, **kwargs)
+            bound_func = descr_func.__get__(descriptor, type(descriptor))
+            return bound_func(self, key, *args, **kwargs)
 
     def __getattribute__(self, key):
         # Speed up a little bit, also dict-descriptors with underscores won't work.

@@ -6,7 +6,7 @@ from mock import MagicMock, call
 from attrdict import (
     AttrDict, PathTypeError, PathKeyError,
     path_functor_wrapper, merge, inplace_merge, generic_merge,
-    MergeError, TypedAttrDict
+    MergeError, TypedAttrDict, DictDescriptor
 )
 
 AD = AttrDict
@@ -562,6 +562,20 @@ class TestMerge(object):
         assert exc_info.value[:2] == (1, AD(y=2))
 
 
+class MethodMock(MagicMock):
+    def __init__(self, *args, **kwargs):
+        super(MethodMock, self).__init__(*args, **kwargs)
+        self.mock_for_get = MagicMock()
+
+    def __get__(self, instance, type):
+        self.mock_for_get(instance, type)
+        return self
+
+    def assert_called_with(self, instance, *args, **kwargs):
+        self.mock_for_get.assert_any_call(instance, type(instance))
+        super(MethodMock, self).assert_called_with(*args, **kwargs)
+
+
 class TestTypedAttrDict(object):
     @pytest.fixture
     def empty_tad(self):
@@ -570,11 +584,11 @@ class TestTypedAttrDict(object):
     def get_simple_descriptor(self, with_get=True, with_set=True, with_del=True):
         class SimpleDescriptor(object):
             if with_get:
-                __dictget__ = MagicMock(return_value='mocked_get')
+                __dictget__ = MethodMock(return_value='mocked_get')
             if with_set:
-                __dictset__ = MagicMock()
+                __dictset__ = MethodMock()
             if with_del:
-                __dictdel__ = MagicMock()
+                __dictdel__ = MethodMock()
         return SimpleDescriptor()
 
     @pytest.fixture
@@ -612,7 +626,7 @@ class TestTypedAttrDict(object):
         key = 'descriptor'
         assert getattr(simple_tad, method)(key, *additional_args) == expected
         descriptor = simple_tad._get_descriptor(key)
-        getattr(descriptor, descr_func).assert_called_with(AD(), key, *additional_args)
+        getattr(descriptor, descr_func).assert_called_with(descriptor, AD(), key, *additional_args)
 
     @pytest.mark.parametrize('method,additional_args,descr_func,expected', [
         (getattr, (), '__dictget__', 'mocked_get'),
@@ -623,7 +637,7 @@ class TestTypedAttrDict(object):
         key = 'descriptor'
         assert method(simple_tad, key, *additional_args) == expected
         descriptor = simple_tad._get_descriptor(key)
-        getattr(descriptor, descr_func).assert_called_with(AD(), key, *additional_args)
+        getattr(descriptor, descr_func).assert_called_with(descriptor, AD(), key, *additional_args)
 
     def test_instance_dict_ignored(self, simple_descriptor):
         simple_descriptor.__dictget__ = MagicMock(return_value=41)
@@ -633,7 +647,7 @@ class TestTypedAttrDict(object):
         tad = Tad()
         tad.descr
         simple_descriptor.__dict__['__dictget__'].assert_has_calls([])
-        type(simple_descriptor).__dictget__.assert_called_with(tad, 'descr')
+        type(simple_descriptor).__dictget__.assert_called_with(simple_descriptor, tad, 'descr')
 
     @pytest.mark.parametrize('method,additional_args', [
         ('__getitem__', ()),
@@ -665,5 +679,28 @@ class TestTypedAttrDict(object):
             key = self.get_simple_descriptor(with_del=False)
         tad = Tad()
         tad._raw_setitem('key', 'value')
+        del tad.key
+        assert tad == AD()
+
+    @pytest.fixture
+    def inherited_descriptor(self):
+        class Descriptor(DictDescriptor):
+            def __dictget__(self, dct, key):
+                return super(Descriptor, self).__dictget__(dct, key)
+
+            def __dictset__(self, dct, key, value):
+                super(Descriptor, self).__dictset__(dct, key, value)
+
+            def __dictdel__(self, dct, key):
+                super(Descriptor, self).__dictdel__(dct, key)
+        return Descriptor()
+
+    def test_inherited_descriptor(self, inherited_descriptor):
+        class Tad(TypedAttrDict):
+            key = inherited_descriptor
+        tad = Tad()
+        tad.key = 'value'
+        assert tad.key == 'value'
+        assert tad == AD(key='value')
         del tad.key
         assert tad == AD()
