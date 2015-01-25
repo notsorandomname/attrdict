@@ -569,14 +569,14 @@ class TestTypedAttrDict(object):
         simple_tad = self.get_simple_tad(simple_descriptor)
         assert simple_tad._get_descriptor('descriptor') is simple_descriptor
 
-    @pytest.mark.parametrize('method,additional_args,descr_func', [
-        ('__getitem__', (), '__dictget__'),
-        ('__setitem__', ('some_value',), '__dictset__'),
-        ('__delitem__', (), '__dictdel__'),
+    @pytest.mark.parametrize('method,additional_args,descr_func,expected', [
+        ('__getitem__', (), '__dictget__', 'mocked_get'),
+        ('__setitem__', ('some_value',), '__dictset__', None),
+        ('__delitem__', (), '__dictdel__', None),
     ])
-    def test_getsetdelitem_calls_dictget(self, method, additional_args, descr_func, simple_tad):
+    def test_getsetdelitem_calls_dictget(self, method, additional_args, descr_func, expected, simple_tad):
         key = 'descriptor'
-        getattr(simple_tad, method)(key, *additional_args)
+        assert getattr(simple_tad, method)(key, *additional_args) == expected
         descriptor = simple_tad._get_descriptor(key)
         getattr(descriptor, descr_func).assert_called_with(AD(), key, *additional_args)
 

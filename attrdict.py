@@ -355,12 +355,26 @@ DEL = 'del'
 
 
 def _get_action(name):
-    return ('__dict%s__' % name, '__%sitem__' % name)
+    return ('__dict%s__' % name, '_raw_%sitem' % name)
 
 DESCRIPTOR_ACTIONS = {}
 for _action in [GET, SET, DEL]:
     DESCRIPTOR_ACTIONS[_action] = _get_action(_action)
 del _action
+
+
+class DictDescriptor(object):
+    """Helper class with default actions for get/set/del.
+    Inherit from it if you want to roll-back to default action
+    in your descriptors"""
+    def __dictget__(self, dct, key):
+        return dct._raw_getitem(key)
+
+    def __dictset__(self, dct, key, value):
+        dct._raw_setitem(key, value)
+
+    def __dictdel__(self, dct, key):
+        dct._raw_delitem(key)
 
 
 class TypedAttrDict(AttrDict):
@@ -376,7 +390,7 @@ class TypedAttrDict(AttrDict):
         descr_action, dict_action = DESCRIPTOR_ACTIONS[action]
         descr_func = getattr(descriptor, descr_action, NO_VALUE)
         if descr_func is NO_VALUE:
-            return getattr(super(TypedAttrDict, self), dict_action)(key, *args, **kwargs)
+            return getattr(self, dict_action)(key, *args, **kwargs)
         else:
             return descr_func(self, key, *args, **kwargs)
 
@@ -388,3 +402,12 @@ class TypedAttrDict(AttrDict):
 
     def __delitem__(self, key):
         self._action_func(DEL, key)
+
+    def _raw_getitem(self, key):
+        return super(TypedAttrDict, self).__getitem__(key)
+
+    def _raw_setitem(self, key, value):
+        return super(TypedAttrDict, self).__setitem__(key, value)
+
+    def _raw_delitem(self, key):
+        return super(TypedAttrDict, self).__delitem__(key)
